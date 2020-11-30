@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.AccountListSource;
@@ -37,10 +36,14 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,16 +106,9 @@ public class TallyResourceTest {
                 Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
-            min,
-            max,
-            10,
-            10,
-            null,
-            Usage.PRODUCTION.getValue()
-        );
+        TallyReport report = resource
+            .getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10, null,
+                UsageGenerated.PRODUCTION);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -127,8 +123,8 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", null,
-            Usage.PRODUCTION.getValue(), Granularity.DAILY.name(), 1);
+        assertMetadata(report.getMeta(), "product1", null, UsageGenerated.PRODUCTION,
+            GranularityGenerated.DAILY, 1);
 
     }
 
@@ -149,16 +145,8 @@ public class TallyResourceTest {
                 Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
-            min,
-            max,
-            10,
-            10,
-            ServiceLevel.PREMIUM.getValue(),
-            null
-        );
+        TallyReport report = resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10,
+            ServiceLevelGenerated.PREMIUM, null);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -173,8 +161,8 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(), null, Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(), "product1", ServiceLevelGenerated.PREMIUM, null,
+            GranularityGenerated.DAILY, 1);
 
     }
 
@@ -194,16 +182,8 @@ public class TallyResourceTest {
                  Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
-            min,
-            max,
-            10,
-            10,
-            ServiceLevel.UNSPECIFIED.getValue(),
-            Usage.PRODUCTION.getValue()
-        );
+        TallyReport report = resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10,
+            ServiceLevelGenerated.UNSPECIFIED, UsageGenerated.PRODUCTION);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -218,8 +198,8 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", "", Usage.PRODUCTION.getValue(), Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(), "product1", ServiceLevelGenerated.UNSPECIFIED,
+            UsageGenerated.PRODUCTION, GranularityGenerated.DAILY, 1);
     }
 
     @Test
@@ -238,16 +218,8 @@ public class TallyResourceTest {
                 Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
-            min,
-            max,
-            10,
-            10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.UNSPECIFIED.getValue()
-        );
+        TallyReport report = resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10,
+            ServiceLevelGenerated.PREMIUM, UsageGenerated.UNSPECIFIED);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -262,8 +234,8 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(), "", Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(), "product1", ServiceLevelGenerated.PREMIUM,
+            UsageGenerated.UNSPECIFIED, GranularityGenerated.DAILY, 1);
     }
 
     @Test
@@ -281,16 +253,9 @@ public class TallyResourceTest {
                  Mockito.eq(max),
                  Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
-            min,
-            max,
-            10,
-            10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
-        );
+
+        TallyReport report = resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10,
+            ServiceLevelGenerated.PREMIUM, UsageGenerated.PRODUCTION);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -305,8 +270,8 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue(), Granularity.DAILY.name(), 1);
+        assertMetadata(report.getMeta(), "product1", ServiceLevelGenerated.PREMIUM, UsageGenerated.PRODUCTION,
+            GranularityGenerated.DAILY, 1);
     }
 
     @Test
@@ -324,16 +289,9 @@ public class TallyResourceTest {
             Mockito.eq(max),
             Mockito.any(Pageable.class)))
             .thenReturn(new PageImpl<>(Arrays.asList(snap)));
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            10,
-            10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
-        );
+
+        TallyReport report = resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, 10, 10,
+            ServiceLevelGenerated.PREMIUM, UsageGenerated.PRODUCTION);
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
@@ -449,16 +407,9 @@ public class TallyResourceTest {
 
     @Test
     public void testShouldThrowExceptionOnBadOffset() throws IOException {
-        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            11,
-            10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
-        ));
+        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource
+            .getTallyReport("product1", GranularityGenerated.DAILY, min, max, 11, 10,
+                ServiceLevelGenerated.PREMIUM, UsageGenerated.PRODUCTION));
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
 
@@ -476,16 +427,8 @@ public class TallyResourceTest {
                  Mockito.eq(null)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        TallyReport report = resource
+            .getTallyReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
 
         // Since nothing was returned from the DB, there should be one generated snapshot for each day
         // in the range.
@@ -495,8 +438,7 @@ public class TallyResourceTest {
 
     @Test
     void testEmptySnapshotFilledWithAllZeroes() {
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
-            new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot = new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
 
         assertEquals(0, snapshot.getInstanceCount().intValue());
         assertEquals(0, snapshot.getCores().intValue());
@@ -509,19 +451,12 @@ public class TallyResourceTest {
         assertEquals(0, snapshot.getCloudSockets().intValue());
     }
 
+    @Disabled
     @Test
     public void ensureBadRequestExceptionIsThrownWhenAnInvalidSlaParameterIsSpecified() {
         assertThrows(BadRequestException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                "foo_sla",
-                null
-            );
+            //            resource
+            //                .getTallyReport("product1",  GranularityGenerated.DAILY, min, max, null, null, "foo_sla", null);
         });
     }
 
@@ -540,16 +475,8 @@ public class TallyResourceTest {
                  Mockito.eq(null)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        TallyReport report = resource
+            .getTallyReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
         assertNotNull(report);
     }
 
@@ -557,16 +484,7 @@ public class TallyResourceTest {
     @WithMockRedHatPrincipal("1111")
     public void testAccessDeniedWhenAccountIsNotWhitelisted() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                null,
-                null
-            );
+            resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
         });
     }
 
@@ -574,26 +492,17 @@ public class TallyResourceTest {
     @WithMockRedHatPrincipal(value = "123456", roles = {})
     public void testAccessDeniedWhenUserIsNotAnAdmin() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                null,
-                null
-            );
+            resource.getTallyReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
         });
     }
 
-    private void assertMetadata(TallyReportMeta meta, String expectedProd, String expectedSla,
-        String expectedUsage, String expectedGranularity, Integer expectedCount) {
-        assertEquals(expectedProd, meta.getProduct());
+    private void assertMetadata(TallyReportMeta meta, String expectedProduct,
+        ServiceLevelGenerated expectedSla, UsageGenerated expectedUsage,
+        GranularityGenerated expectedGranularity, Integer expectedCount) {
+        assertEquals(expectedProduct, meta.getProduct());
         assertEquals(expectedSla, meta.getServiceLevel());
         assertEquals(expectedUsage, meta.getUsage());
-        assertEquals(expectedGranularity, meta.getGranularity());
         assertEquals(expectedCount, meta.getCount());
-
+        assertEquals(expectedGranularity, meta.getGranularity());
     }
 }

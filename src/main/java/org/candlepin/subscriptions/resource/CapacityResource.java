@@ -32,7 +32,10 @@ import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 
 import org.springframework.data.domain.Page;
@@ -68,69 +71,6 @@ public class CapacityResource implements CapacityApi {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
         this.clock = clock;
-    }
-
-    @Override
-    @ReportingAccessRequired
-    public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime reportBegin, @NotNull OffsetDateTime reportEnd, Integer offset,
-        @Min(1) Integer limit, String sla, String usage) {
-
-        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
-        String ownerId = ResourceUtils.getOwnerId();
-
-        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-
-        // capacity records do not include _ANY rows
-        if (sanitizedServiceLevel == ServiceLevel.ANY) {
-            sanitizedServiceLevel = null;
-        }
-        if (sanitizedUsage == Usage.ANY) {
-            sanitizedUsage = null;
-        }
-
-        List<CapacitySnapshot> capacities = getCapacities(
-            ownerId,
-            productId,
-            sanitizedServiceLevel,
-            sanitizedUsage,
-            granularityValue,
-            reportBegin,
-            reportEnd
-        );
-
-        List<CapacitySnapshot> data;
-        TallyReportLinks links;
-        if (offset != null || limit != null) {
-            Pageable pageable = ResourceUtils.getPageable(offset, limit);
-            data = paginate(capacities, pageable);
-            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
-            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
-        }
-        else {
-            data = capacities;
-            links = null;
-        }
-
-        CapacityReport report = new CapacityReport();
-        report.setData(data);
-        report.setMeta(new CapacityReportMeta());
-        report.getMeta().setGranularity(granularity);
-        report.getMeta().setProduct(productId);
-        report.getMeta().setCount(report.getData().size());
-
-        if (sanitizedServiceLevel != null) {
-            report.getMeta().setServiceLevel(sanitizedServiceLevel.getValue());
-        }
-
-        if (sanitizedUsage != null) {
-            report.getMeta().setUsage(sanitizedUsage.getValue());
-        }
-
-        report.setLinks(links);
-
-        return report;
     }
 
     private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
@@ -215,5 +155,62 @@ public class CapacityResource implements CapacityApi {
         return value != null ? value : 0;
     }
 
+    @Override
+    @ReportingAccessRequired
+    public CapacityReport getCapacityReport(String productId,
+        @NotNull GranularityGenerated granularityGenerated, @NotNull OffsetDateTime beginning,
+        @NotNull OffsetDateTime ending, Integer offset, @Min(1) Integer limit,
+        ServiceLevelGenerated serviceLevelGenerated, UsageGenerated usageGenerated) {
+
+        Granularity granularity = Granularity.fromOpenApi(granularityGenerated);
+        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(serviceLevelGenerated);
+        String ownerId = ResourceUtils.getOwnerId();
+
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usageGenerated);
+
+        // capacity records do not include _ANY rows
+        if (sanitizedServiceLevel == ServiceLevel.ANY) {
+            sanitizedServiceLevel = null;
+        }
+        if (sanitizedUsage == Usage.ANY) {
+            sanitizedUsage = null;
+        }
+
+        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, sanitizedServiceLevel,
+            sanitizedUsage, granularity, beginning, ending);
+
+        List<CapacitySnapshot> data;
+        TallyReportLinks links;
+        if (offset != null || limit != null) {
+            Pageable pageable = ResourceUtils.getPageable(offset, limit);
+            data = paginate(capacities, pageable);
+            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
+        }
+        else {
+            data = capacities;
+            links = null;
+        }
+
+        CapacityReport report = new CapacityReport();
+        report.setData(data);
+        report.setMeta(new CapacityReportMeta());
+        report.getMeta().setGranularity(granularityGenerated);
+        report.getMeta().setProduct(productId);
+        report.getMeta().setCount(report.getData().size());
+
+        if (sanitizedServiceLevel != null) {
+            report.getMeta()
+                .setServiceLevel(ServiceLevelGenerated.fromValue(sanitizedServiceLevel.getValue()));
+        }
+
+        if (sanitizedUsage != null) {
+            report.getMeta().setUsage(UsageGenerated.fromValue(sanitizedUsage.getValue()));
+        }
+
+        report.setLinks(links);
+
+        return report;
+    }
 
 }
