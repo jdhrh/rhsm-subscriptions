@@ -73,6 +73,64 @@ public class CapacityResource implements CapacityApi {
         this.clock = clock;
     }
 
+    @Override
+    @ReportingAccessRequired
+    public CapacityReport getCapacityReport(String productId,
+        @NotNull GranularityGenerated granularityGenerated, @NotNull OffsetDateTime beginning,
+        @NotNull OffsetDateTime ending, Integer offset, @Min(1) Integer limit,
+        ServiceLevelGenerated serviceLevelGenerated, UsageGenerated usageGenerated) {
+
+        Granularity granularity = Granularity.fromOpenApi(granularityGenerated);
+        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(serviceLevelGenerated);
+        String ownerId = ResourceUtils.getOwnerId();
+
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usageGenerated);
+
+        // capacity records do not include _ANY rows
+        if (sanitizedServiceLevel == ServiceLevel.ANY) {
+            sanitizedServiceLevel = null;
+        }
+        if (sanitizedUsage == Usage.ANY) {
+            sanitizedUsage = null;
+        }
+
+        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, sanitizedServiceLevel,
+            sanitizedUsage, granularity, beginning, ending);
+
+        List<CapacitySnapshot> data;
+        TallyReportLinks links;
+        if (offset != null || limit != null) {
+            Pageable pageable = ResourceUtils.getPageable(offset, limit);
+            data = paginate(capacities, pageable);
+            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
+        }
+        else {
+            data = capacities;
+            links = null;
+        }
+
+        CapacityReport report = new CapacityReport();
+        report.setData(data);
+        report.setMeta(new CapacityReportMeta());
+        report.getMeta().setGranularity(granularityGenerated);
+        report.getMeta().setProduct(productId);
+        report.getMeta().setCount(report.getData().size());
+
+        if (sanitizedServiceLevel != null) {
+            report.getMeta()
+                .setServiceLevel(ServiceLevelGenerated.fromValue(sanitizedServiceLevel.getValue()));
+        }
+
+        if (sanitizedUsage != null) {
+            report.getMeta().setUsage(UsageGenerated.fromValue(sanitizedUsage.getValue()));
+        }
+
+        report.setLinks(links);
+
+        return report;
+    }
+
     private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
         if (pageable == null) {
             return capacities;

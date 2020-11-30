@@ -52,7 +52,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SpringBootTest
@@ -236,9 +235,9 @@ class CapacityResourceTest {
     @Disabled
     @Test
     void testShouldThrowBadRequestOnBadSla() {
-        //TODO is this needed now that serialzation will fail if you send a bad sla?
-        //        BadRequestException e = assertThrows(BadRequestException.class, () -> resource
-        //            .getCapacityReport("product1",  GranularityGenerated.DAILY, min, max, 0, 10, "badSla", null));
+        assertThrows(IllegalArgumentException.class, () -> resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, 0, 10,
+                ServiceLevelGenerated.valueOf("badSla"), null));
     }
 
     @Test
