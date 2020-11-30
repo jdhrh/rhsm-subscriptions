@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
@@ -71,7 +72,7 @@ public class TallyResource implements TallyApi {
 
     @Override
     @ReportingAccessRequired
-    public TallyReport getTallyReport(String productId, @NotNull GranularityGenerated granularityGenerated,
+    public TallyReport getTallyReport(ProductId productId, @NotNull GranularityGenerated granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
         @Min(1) Integer limit, ServiceLevelGenerated sla, UsageGenerated usageGenerated) {
         // When limit and offset are not specified, we will fill the report with dummy
@@ -85,11 +86,12 @@ public class TallyResource implements TallyApi {
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
         Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageGenerated);
-        Granularity granularityValue = Granularity.fromOpenApi(granularityGenerated);
+        Granularity granularityValue = Granularity.fromOpenApi(granularity);
+        String productIdValue = productId.toString();
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
-            productId,
+            productIdValue,
             granularityValue,
             serviceLevel,
             effectiveUsage,
@@ -107,7 +109,7 @@ public class TallyResource implements TallyApi {
         report.setData(snaps);
         report.setMeta(new TallyReportMeta());
         report.getMeta().setGranularity(GranularityGenerated.fromValue(granularityValue.toString()));
-        report.getMeta().setProduct(productId);
+        report.getMeta().setProduct(productIdValue);
         report.getMeta().setServiceLevel(sla);
         report.getMeta().setUsage(usageGenerated == null ? null : UsageGenerated.fromValue(effectiveUsage.getValue()));
 
